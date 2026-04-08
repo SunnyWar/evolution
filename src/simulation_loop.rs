@@ -32,23 +32,19 @@ pub fn run_simulation(generations: usize, pop_size: usize, params: &SimParams) -
 
     let mut avg_intel_history = Vec::with_capacity(generations);
     for _generation in 0..generations {
-        // Calculate world stats
+        // Calculate world stats in a single pass
+        let (sum_intel, sum_phys, sum_app) = population.iter().fold((0.0, 0.0, 0.0), |acc, a| {
+            (
+                acc.0 + a.traits.intelligence,
+                acc.1 + a.traits.physical_size,
+                acc.2 + a.traits.appearance_delta,
+            )
+        });
+        let pop_size_f = population.len() as f64;
         let stats = WorldStats {
-            avg_intel: population
-                .iter()
-                .map(|a| a.traits.intelligence)
-                .sum::<f64>()
-                / population.len() as f64,
-            avg_physical_size: population
-                .iter()
-                .map(|a| a.traits.physical_size)
-                .sum::<f64>()
-                / population.len() as f64,
-            avg_appearance_delta: population
-                .iter()
-                .map(|a| a.traits.appearance_delta)
-                .sum::<f64>()
-                / population.len() as f64,
+            avg_intel: sum_intel / pop_size_f,
+            avg_physical_size: sum_phys / pop_size_f,
+            avg_appearance_delta: sum_app / pop_size_f,
             population_size: population.len(),
         };
 
