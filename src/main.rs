@@ -99,6 +99,14 @@ fn main() {
         generations,
         "avg_intel_comparison.png",
     );
+
+    plot::plot_dual_stddev_intel(
+        &stddev_baseline,
+        &stddev_culling,
+        generations,
+        "stddev_intel_comparison.png",
+    );
+    println!("Plot saved to stddev_intel_comparison.png (baseline vs social culling stddev)");
     println!("Plot saved to avg_intel_comparison.png (baseline vs social culling)");
 
     let rows = 10;
