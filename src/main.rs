@@ -89,9 +89,10 @@ fn main() {
     let mut params_baseline = params.clone();
     params_baseline.envy_coefficient = 0.0;
     params_baseline.conformity_coefficient = 0.0;
-    let avg_intel_baseline =
+    let (avg_intel_baseline, stddev_baseline) =
         simulation_loop::run_simulation(generations, pop_size, &params_baseline);
-    let avg_intel_culling = simulation_loop::run_simulation(generations, pop_size, &params);
+    let (avg_intel_culling, stddev_culling) =
+        simulation_loop::run_simulation(generations, pop_size, &params);
     plot::plot_dual_avg_intel(
         &avg_intel_baseline,
         &avg_intel_culling,
@@ -103,7 +104,7 @@ fn main() {
     let rows = 10;
     // Output results
     println!("\nBaseline (no social culling):");
-    println!("gen,avg_intel");
+    println!("gen,avg_intel,stddev_intel");
     let mut printed_last = false;
     for i in 0..=rows {
         let generation = (generations as f64 * i as f64 / (rows as f64 + 1.0)).round() as usize;
@@ -111,7 +112,8 @@ fn main() {
             continue;
         }
         let avg = avg_intel_baseline.get(generation).copied().unwrap_or(0.0);
-        println!("{}, {:.2}", generation, avg);
+        let stddev = stddev_baseline.get(generation).copied().unwrap_or(0.0);
+        println!("{}, {:.2}, {:.4}", generation, avg, stddev);
         if generation == generations - 1 {
             printed_last = true;
         }
@@ -119,11 +121,12 @@ fn main() {
     if !printed_last {
         let generation = generations - 1;
         let avg = avg_intel_baseline.get(generation).copied().unwrap_or(0.0);
-        println!("{}, {:.2}", generation, avg);
+        let stddev = stddev_baseline.get(generation).copied().unwrap_or(0.0);
+        println!("{}, {:.2}, {:.4}", generation, avg, stddev);
     }
 
     println!("\nWith Social Culling:");
-    println!("gen,avg_intel");
+    println!("gen,avg_intel,stddev_intel");
     printed_last = false;
     for i in 0..=rows {
         let generation = (generations as f64 * i as f64 / (rows as f64 + 1.0)).round() as usize;
@@ -131,7 +134,8 @@ fn main() {
             continue;
         }
         let avg = avg_intel_culling.get(generation).copied().unwrap_or(0.0);
-        println!("{}, {:.2}", generation, avg);
+        let stddev = stddev_culling.get(generation).copied().unwrap_or(0.0);
+        println!("{}, {:.2}, {:.4}", generation, avg, stddev);
         if generation == generations - 1 {
             printed_last = true;
         }
@@ -139,9 +143,11 @@ fn main() {
     if !printed_last {
         let generation = generations - 1;
         let avg = avg_intel_culling.get(generation).copied().unwrap_or(0.0);
-        println!("{}, {:.2}", generation, avg);
+        let stddev = stddev_culling.get(generation).copied().unwrap_or(0.0);
+        println!("{}, {:.2}, {:.4}", generation, avg, stddev);
     }
     let generation = generations - 1;
     let avg = avg_intel_culling.get(generation).copied().unwrap_or(0.0);
-    println!("{}, {:.2}", generation, avg);
+    let stddev = stddev_culling.get(generation).copied().unwrap_or(0.0);
+    println!("{}, {:.2}, {:.4}", generation, avg, stddev);
 }

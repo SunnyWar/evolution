@@ -14,7 +14,11 @@ pub struct SimParams {
     pub conformity_coefficient: f64,
 }
 
-pub fn run_simulation(generations: usize, pop_size: usize, params: &SimParams) -> Vec<f64> {
+pub fn run_simulation(
+    generations: usize,
+    pop_size: usize,
+    params: &SimParams,
+) -> (Vec<f64>, Vec<f64>) {
     let mut rng = SmallRng::seed_from_u64(42);
     let mut population: Vec<Agent> = (0..pop_size)
         .map(|_| Agent {
@@ -31,6 +35,7 @@ pub fn run_simulation(generations: usize, pop_size: usize, params: &SimParams) -
     // RNG already initialized above
 
     let mut avg_intel_history = Vec::with_capacity(generations);
+    let mut stddev_intel_history = Vec::with_capacity(generations);
     for _generation in 0..generations {
         // Calculate world stats in a single pass
         let (sum_intel, sum_phys, sum_app) = population.iter().fold((0.0, 0.0, 0.0), |acc, a| {
@@ -41,12 +46,25 @@ pub fn run_simulation(generations: usize, pop_size: usize, params: &SimParams) -
             )
         });
         let pop_size_f = population.len() as f64;
+        let avg_intel = sum_intel / pop_size_f;
         let stats = WorldStats {
-            avg_intel: sum_intel / pop_size_f,
+            avg_intel,
             avg_physical_size: sum_phys / pop_size_f,
             avg_appearance_delta: sum_app / pop_size_f,
             population_size: population.len(),
         };
+
+        // Calculate standard deviation of intelligence
+        let variance = population
+            .iter()
+            .map(|a| {
+                let diff = a.traits.intelligence - avg_intel;
+                diff * diff
+            })
+            .sum::<f64>()
+            / pop_size_f;
+        let stddev_intel = variance.sqrt();
+        stddev_intel_history.push(stddev_intel);
 
         // Calculate fitness for each agent
         for agent in &mut population {
@@ -77,5 +95,5 @@ pub fn run_simulation(generations: usize, pop_size: usize, params: &SimParams) -
 
         avg_intel_history.push(stats.avg_intel);
     }
-    avg_intel_history
+    (avg_intel_history, stddev_intel_history)
 }
