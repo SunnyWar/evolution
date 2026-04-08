@@ -12,9 +12,9 @@ use crate::simulation_loop::SimParams;
 fn main() {
     // Always print help output
     println!("Evolution Simulation");
-    println!("Usage: evolution [-g generations] [-n pop_size] [-s selection_exponent] [-c cull_threshold] [-e envy_coefficient] [-i intel_weight] [-f conformity_coefficient]");
+    println!("Usage: evolution [-g generations] [-n num_agents] [-s selection_exponent] [-c cull_threshold] [-e envy_coefficient] [-i intel_weight] [-f conformity_coefficient]");
     println!("  -g <generations>            Number of generations (default: 50)");
-    println!("  -n <pop_size>               Population size (default: 100)");
+    println!("  -n <num_agents>             Number of agents in the population (default: 100)");
     println!("  -s <selection_exponent>     Selection exponent (default: 1.5)");
     println!("  -c <cull_threshold>         Cull threshold (default: 0.5)");
     println!("  -e <envy_coefficient>       Envy coefficient (default: 0.2)");
