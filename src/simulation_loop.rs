@@ -4,6 +4,7 @@ use rand::rngs::SmallRng;
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rand::SeedableRng;
+use rayon::prelude::*;
 
 #[derive(Clone)]
 pub struct SimParams {
@@ -84,30 +85,37 @@ pub fn run_simulation(
         let stddev_intel = variance.sqrt();
 
         // Calculate fitness for each agent and track conflict penalty
-        let mut fitnesses = Vec::with_capacity(population.len());
-        let mut conflict_penalties = Vec::with_capacity(population.len());
-        for i in 0..population.len() {
-            let neighbors: Vec<Agent> = population
-                .iter()
-                .enumerate()
-                .filter(|(j, _)| *j != i)
-                .map(|(_, a)| a.clone())
-                .collect();
-            let mut agent = population[i].clone();
-            agent.calculate_fitness(&stats, params, &neighbors);
-            fitnesses.push(agent.fitness_score);
-            // Calculate average conflict penalty for this agent
-            let mut conflict_penalty = 0.0;
-            let n = neighbors.len().max(1) as f64;
-            for neighbor in &neighbors {
-                if agent.traits.social_stealth > 0.5 && neighbor.traits.social_stealth > 0.5 {
-                    conflict_penalty +=
-                        0.05 * (agent.traits.social_stealth + neighbor.traits.social_stealth);
+
+        // Parallel fitness/conflict calculation
+        let fitnesses_and_conflicts: Vec<(f64, f64)> = population
+            .par_iter()
+            .map(|agent| {
+                let neighbors: Vec<Agent> = population
+                    .iter()
+                    .filter(|a| !std::ptr::eq(*a, agent))
+                    .cloned()
+                    .collect();
+                let mut agent_clone = agent.clone();
+                agent_clone.calculate_fitness(&stats, params, &neighbors);
+                let mut conflict_penalty = 0.0;
+                let n = neighbors.len().max(1) as f64;
+                for neighbor in &neighbors {
+                    if agent_clone.traits.social_stealth > 0.5
+                        && neighbor.traits.social_stealth > 0.5
+                    {
+                        conflict_penalty += 0.05
+                            * (agent_clone.traits.social_stealth + neighbor.traits.social_stealth);
+                    }
                 }
-            }
-            conflict_penalty /= n;
-            conflict_penalties.push(conflict_penalty);
-        }
+                conflict_penalty /= n;
+                (agent_clone.fitness_score, conflict_penalty)
+            })
+            .collect();
+
+        let fitnesses: Vec<f64> = fitnesses_and_conflicts.iter().map(|(f, _)| *f).collect();
+        let conflict_penalties: Vec<f64> =
+            fitnesses_and_conflicts.iter().map(|(_, c)| *c).collect();
+
         for (agent, &fitness) in population.iter_mut().zip(fitnesses.iter()) {
             agent.fitness_score = fitness;
         }
