@@ -1,9 +1,9 @@
 [package]
 name = "evolution"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 plotters = "0.3.7"
-rand = "0.10.0"
+rand = { version = "0.8.5", features = ["small_rng"] }
 chrono = "0.4"
