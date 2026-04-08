@@ -1,0 +1,23 @@
+/target/
+**/*.rs.bk
+
+# IDE/editor
+/.vscode/
+/.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Byproducts
+*.png
+
+# Misc
+Cargo.lock
