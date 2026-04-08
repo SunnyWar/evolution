@@ -24,9 +24,11 @@ pub fn run_simulation(
         .map(|_| Agent {
             latent_fitness: rng.gen::<f64>() * 2.0,
             traits: VisibleTraits {
-                intelligence: 0.3 + rng.gen::<f64>() * 1.2, // start low, but wider
+                intelligence: 0.3 + rng.gen::<f64>() * 1.2,
                 physical_size: 0.5 + rng.gen::<f64>() * 2.0,
                 appearance_delta: rng.gen::<f64>(),
+                social_stealth: rng.gen::<f64>(),
+                detection: rng.gen::<f64>(),
             },
             fitness_score: 0.0,
         })
@@ -67,8 +69,21 @@ pub fn run_simulation(
         stddev_intel_history.push(stddev_intel);
 
         // Calculate fitness for each agent
-        for agent in &mut population {
-            agent.calculate_fitness(&stats, params);
+        // Calculate fitness for each agent without violating borrow rules
+        let mut fitnesses = Vec::with_capacity(population.len());
+        for i in 0..population.len() {
+            let neighbors: Vec<Agent> = population
+                .iter()
+                .enumerate()
+                .filter(|(j, _)| *j != i)
+                .map(|(_, a)| a.clone())
+                .collect();
+            let mut agent = population[i].clone();
+            agent.calculate_fitness(&stats, params, &neighbors);
+            fitnesses.push(agent.fitness_score);
+        }
+        for (agent, &fitness) in population.iter_mut().zip(fitnesses.iter()) {
+            agent.fitness_score = fitness;
         }
 
         // Tournament selection: fill new population
@@ -83,13 +98,19 @@ pub fn run_simulation(
                 b
             };
             let mut child = parent.clone();
-            child.traits.intelligence += (rng.gen::<f64>() - 0.5) * 0.05;
-            child.traits.intelligence = child.traits.intelligence.max(0.0);
-            child.traits.physical_size += (rng.gen::<f64>() - 0.5) * 0.1;
-            child.traits.physical_size = child.traits.physical_size.max(0.0);
-            child.traits.appearance_delta += (rng.gen::<f64>() - 0.5) * 0.05;
-            child.traits.appearance_delta = child.traits.appearance_delta.max(0.0);
-            child.latent_fitness += (rng.gen::<f64>() - 0.5) * 0.05;
+            // Mutate all traits with Gaussian-like noise, clamped to 0.0
+            child.traits.intelligence =
+                (child.traits.intelligence + (rng.gen::<f64>() - 0.5) * 0.05).max(0.0);
+            child.traits.physical_size =
+                (child.traits.physical_size + (rng.gen::<f64>() - 0.5) * 0.1).max(0.0);
+            child.traits.appearance_delta =
+                (child.traits.appearance_delta + (rng.gen::<f64>() - 0.5) * 0.05).max(0.0);
+            child.traits.social_stealth =
+                (child.traits.social_stealth + (rng.gen::<f64>() - 0.5) * 0.05).max(0.0);
+            child.traits.detection =
+                (child.traits.detection + (rng.gen::<f64>() - 0.5) * 0.05).max(0.0);
+            child.latent_fitness =
+                (child.latent_fitness + (rng.gen::<f64>() - 0.5) * 0.05).max(0.0);
             child.fitness_score = 0.0;
             new_population.push(child);
         }
