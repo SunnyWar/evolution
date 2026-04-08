@@ -10,6 +10,17 @@ use crate::simulation_loop::SimParams;
 // it can run a baseline model with standard natural selection, and then we can add a "social culling" mechanism to see how it affects the population over time.
 // use crate::simulation_loop::SimParams; // Commenting out the old import
 fn main() {
+    // Always print help output
+    println!("Evolution Simulation");
+    println!("Usage: evolution [-g generations] [-n pop_size] [-s selection_exponent] [-c cull_threshold] [-e envy_coefficient] [-i intel_weight] [-f conformity_coefficient]");
+    println!("  -g <generations>            Number of generations (default: 50)");
+    println!("  -n <pop_size>               Population size (default: 100)");
+    println!("  -s <selection_exponent>     Selection exponent (default: 1.5)");
+    println!("  -c <cull_threshold>         Cull threshold (default: 0.5)");
+    println!("  -e <envy_coefficient>       Envy coefficient (default: 0.2)");
+    println!("  -i <intel_weight>           Intelligence weight (default: 1.0)");
+    println!("  -f <conformity_coefficient> Conformity coefficient (default: 0.0)");
+    println!("Example: evolution -g 100 -n 200 -s 2.0 -c 0.6 -e 0.3 -i 1.2 -f 0.1\n");
     let args: Vec<String> = env::args().collect();
 
     // Helper to get value after a flag
@@ -66,9 +77,18 @@ fn main() {
         .iter()
         .map(|s| s.stddev_intelligence)
         .collect();
+    let avg_stealth_baseline: Vec<f64> = baseline_stats
+        .iter()
+        .map(|s| s.avg_social_stealth)
+        .collect();
+    let avg_detection_baseline: Vec<f64> = baseline_stats.iter().map(|s| s.avg_detection).collect();
     let avg_latent_baseline: Vec<f64> = baseline_stats
         .iter()
         .map(|s| s.avg_latent_fitness)
+        .collect();
+    let avg_conflict_baseline: Vec<f64> = baseline_stats
+        .iter()
+        .map(|s| s.avg_conflict_penalty)
         .collect();
 
     let avg_intel_social: Vec<f64> = social_stats.iter().map(|s| s.avg_intelligence).collect();
@@ -83,7 +103,7 @@ fn main() {
 
     let rows = 10;
     println!("\nBaseline (no social culling):");
-    println!("gen,avg_intel,stddev_intel");
+    println!("gen,avg_intel,stddev_intel,avg_stealth,avg_detection,avg_latent,avg_conflict");
     let mut printed_last = false;
     for i in 0..=rows {
         let generation = (generations as f64 * i as f64 / (rows as f64 + 1.0)).round() as usize;
@@ -92,7 +112,20 @@ fn main() {
         }
         let avg = avg_intel_baseline.get(generation).copied().unwrap_or(0.0);
         let stddev = stddev_baseline.get(generation).copied().unwrap_or(0.0);
-        println!("{}, {:.2}, {:.4}", generation, avg, stddev);
+        let stealth = avg_stealth_baseline.get(generation).copied().unwrap_or(0.0);
+        let detection = avg_detection_baseline
+            .get(generation)
+            .copied()
+            .unwrap_or(0.0);
+        let latent = avg_latent_baseline.get(generation).copied().unwrap_or(0.0);
+        let conflict = avg_conflict_baseline
+            .get(generation)
+            .copied()
+            .unwrap_or(0.0);
+        println!(
+            "{}, {:.2}, {:.4}, {:.4}, {:.4}, {:.4}, {:.4}",
+            generation, avg, stddev, stealth, detection, latent, conflict
+        );
         if generation == generations - 1 {
             printed_last = true;
         }
@@ -101,7 +134,20 @@ fn main() {
         let generation = generations - 1;
         let avg = avg_intel_baseline.get(generation).copied().unwrap_or(0.0);
         let stddev = stddev_baseline.get(generation).copied().unwrap_or(0.0);
-        println!("{}, {:.2}, {:.4}", generation, avg, stddev);
+        let stealth = avg_stealth_baseline.get(generation).copied().unwrap_or(0.0);
+        let detection = avg_detection_baseline
+            .get(generation)
+            .copied()
+            .unwrap_or(0.0);
+        let latent = avg_latent_baseline.get(generation).copied().unwrap_or(0.0);
+        let conflict = avg_conflict_baseline
+            .get(generation)
+            .copied()
+            .unwrap_or(0.0);
+        println!(
+            "{}, {:.2}, {:.4}, {:.4}, {:.4}, {:.4}, {:.4}",
+            generation, avg, stddev, stealth, detection, latent, conflict
+        );
     }
 
     println!("\nWith Social Game:");
