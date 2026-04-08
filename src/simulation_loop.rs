@@ -86,7 +86,9 @@ pub fn run_simulation(
             child.traits.intelligence += (rng.gen::<f64>() - 0.5) * 0.05;
             child.traits.intelligence = child.traits.intelligence.max(0.0);
             child.traits.physical_size += (rng.gen::<f64>() - 0.5) * 0.1;
+            child.traits.physical_size = child.traits.physical_size.max(0.0);
             child.traits.appearance_delta += (rng.gen::<f64>() - 0.5) * 0.05;
+            child.traits.appearance_delta = child.traits.appearance_delta.max(0.0);
             child.latent_fitness += (rng.gen::<f64>() - 0.5) * 0.05;
             child.fitness_score = 0.0;
             new_population.push(child);
