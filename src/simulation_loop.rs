@@ -14,11 +14,20 @@ pub struct SimParams {
     pub conformity_coefficient: f64,
 }
 
+pub struct GenerationStats {
+    pub avg_intelligence: f64,
+    pub stddev_intelligence: f64,
+    pub avg_social_stealth: f64,
+    pub avg_detection: f64,
+    pub avg_latent_fitness: f64,
+    pub avg_conflict_penalty: f64,
+}
+
 pub fn run_simulation(
     generations: usize,
     pop_size: usize,
     params: &SimParams,
-) -> (Vec<f64>, Vec<f64>) {
+) -> Vec<GenerationStats> {
     let mut rng = SmallRng::seed_from_u64(42);
     let mut population: Vec<Agent> = (0..pop_size)
         .map(|_| Agent {
@@ -36,19 +45,26 @@ pub fn run_simulation(
 
     // RNG already initialized above
 
-    let mut avg_intel_history = Vec::with_capacity(generations);
-    let mut stddev_intel_history = Vec::with_capacity(generations);
+    let mut stats_history = Vec::with_capacity(generations);
     for _generation in 0..generations {
         // Calculate world stats in a single pass
-        let (sum_intel, sum_phys, sum_app) = population.iter().fold((0.0, 0.0, 0.0), |acc, a| {
-            (
-                acc.0 + a.traits.intelligence,
-                acc.1 + a.traits.physical_size,
-                acc.2 + a.traits.appearance_delta,
-            )
-        });
+        let (sum_intel, sum_phys, sum_app, sum_stealth, sum_detection, sum_latent) = population
+            .iter()
+            .fold((0.0, 0.0, 0.0, 0.0, 0.0, 0.0), |acc, a| {
+                (
+                    acc.0 + a.traits.intelligence,
+                    acc.1 + a.traits.physical_size,
+                    acc.2 + a.traits.appearance_delta,
+                    acc.3 + a.traits.social_stealth,
+                    acc.4 + a.traits.detection,
+                    acc.5 + a.latent_fitness,
+                )
+            });
         let pop_size_f = population.len() as f64;
         let avg_intel = sum_intel / pop_size_f;
+        let avg_stealth = sum_stealth / pop_size_f;
+        let avg_detection = sum_detection / pop_size_f;
+        let avg_latent = sum_latent / pop_size_f;
         let stats = WorldStats {
             avg_intel,
             avg_physical_size: sum_phys / pop_size_f,
@@ -66,11 +82,10 @@ pub fn run_simulation(
             .sum::<f64>()
             / pop_size_f;
         let stddev_intel = variance.sqrt();
-        stddev_intel_history.push(stddev_intel);
 
-        // Calculate fitness for each agent
-        // Calculate fitness for each agent without violating borrow rules
+        // Calculate fitness for each agent and track conflict penalty
         let mut fitnesses = Vec::with_capacity(population.len());
+        let mut conflict_penalties = Vec::with_capacity(population.len());
         for i in 0..population.len() {
             let neighbors: Vec<Agent> = population
                 .iter()
@@ -81,10 +96,32 @@ pub fn run_simulation(
             let mut agent = population[i].clone();
             agent.calculate_fitness(&stats, params, &neighbors);
             fitnesses.push(agent.fitness_score);
+            // Calculate average conflict penalty for this agent
+            let mut conflict_penalty = 0.0;
+            let n = neighbors.len().max(1) as f64;
+            for neighbor in &neighbors {
+                if agent.traits.social_stealth > 0.5 && neighbor.traits.social_stealth > 0.5 {
+                    conflict_penalty +=
+                        0.05 * (agent.traits.social_stealth + neighbor.traits.social_stealth);
+                }
+            }
+            conflict_penalty /= n;
+            conflict_penalties.push(conflict_penalty);
         }
         for (agent, &fitness) in population.iter_mut().zip(fitnesses.iter()) {
             agent.fitness_score = fitness;
         }
+
+        let avg_conflict_penalty = conflict_penalties.iter().sum::<f64>() / pop_size_f;
+
+        stats_history.push(GenerationStats {
+            avg_intelligence: avg_intel,
+            stddev_intelligence: stddev_intel,
+            avg_social_stealth: avg_stealth,
+            avg_detection,
+            avg_latent_fitness: avg_latent,
+            avg_conflict_penalty,
+        });
 
         // Tournament selection: fill new population
         let mut new_population = Vec::with_capacity(pop_size);
@@ -115,8 +152,6 @@ pub fn run_simulation(
             new_population.push(child);
         }
         population = new_population;
-
-        avg_intel_history.push(stats.avg_intel);
     }
-    (avg_intel_history, stddev_intel_history)
+    stats_history
 }
