@@ -32,7 +32,7 @@ impl Agent {
         let social_penalty = (intel_outlier_factor * params.envy_coefficient)
             + (look_outlier_factor * params.conformity_coefficient);
 
-        // 3. Final Result
-        self.fitness_score = bio_advantage - social_penalty;
+        // 3. Final Result (clamped to minimum 0.01)
+        self.fitness_score = (bio_advantage - social_penalty).max(0.01);
     }
 }
