@@ -1,6 +1,5 @@
 use crate::simulation_loop::SimParams;
 use crate::stats::WorldStats;
-use rand;
 
 #[derive(Clone)]
 pub struct VisibleTraits {
